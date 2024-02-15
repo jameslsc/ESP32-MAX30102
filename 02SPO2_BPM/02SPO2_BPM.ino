@@ -6,7 +6,7 @@
 #include <Adafruit_SSD1306.h> //OLED libraries
 #include "MAX30105.h"           //MAX3010x library
 #include "heartRate.h"          //Heart rate calculating algorithm
-#include "ESP32Servo.h"
+//#include "ESP32Servo.h"
 MAX30105 particleSensor;
 
 //計算心跳用變數
@@ -68,16 +68,23 @@ static const unsigned char PROGMEM O2_bmp[] = {
   0x0f, 0xe0, 0x00, 0x00, 0x07, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-int Tonepin = 4; //蜂鳴器腳位
+//int Tonepin = 4; //蜂鳴器腳位
+#define I2C_SDA 33
+#define I2C_SCL 32
+TwoWire I2CMAX = TwoWire(0);
 
 void setup() {
   Serial.begin(115200);
   Serial.println("System Start");
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //Start the OLED display
-  display.display();
+  // Start I2C Communication SDA = 5 and SCL = 4 on Wemos Lolin32 ESP32 with built-in SSD1306 OLED
+  I2CMAX.begin(I2C_SDA, I2C_SCL, 100000);  // Initialize sensor
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) {
+    Serial.println(F("SSD1306 allocation fai6led"));
+    for(;;);
+  }
   delay(3000);
   //檢查
-  if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
+  if (!particleSensor.begin(I2CMAX, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
   {
     Serial.println("找不到MAX30102");
     while (1);
@@ -110,16 +117,16 @@ void loop() {
       display.setTextSize(2);//設定文字大小
       display.setTextColor(WHITE);//文字顏色
       display.setCursor(42, 10);//設定游標位置
-      //display.print(beatAvg); display.println(" BPM");//顯示心跳數值
+      display.print(beatAvg); display.println(" BPM");//顯示心跳數值
       display.drawBitmap(0, 35, O2_bmp, 32, 32, WHITE);//顯示氧氣圖示
       display.setCursor(42, 40);//設定游標位置
       //顯示血氧數值
       if (beatAvg > 30) display.print(String(ESpO2) + "%");
       else display.print("---- %" );
       display.display();//顯示螢幕
-      tone(Tonepin, 1000);//發出聲音
+//      tone(Tonepin, 1000);//發出聲音
       delay(10);
-      noTone(Tonepin);//停止聲音
+//      noTone(Tonepin);//停止聲音
       //Serial.print("Bpm="); Serial.println(beatAvg);//將心跳顯示到序列
       long delta = millis() - lastBeat;//計算心跳差
       lastBeat = millis();
@@ -176,11 +183,11 @@ void loop() {
     display.setTextColor(WHITE);//文字顏色
     display.setCursor(42, 10);//設定游標位置
     display.print(beatAvg); display.println(" BPM");//顯示心跳數值
-    display.drawBitmap(0, 35, O2_bmp, 32, 32, WHITE);//顯示氧氣圖示
+//    display.drawBitmap(0, 35, O2_bmp, 32, 32, WHITE);//顯示氧氣圖示
     display.setCursor(42, 40);//設定游標位置
     //顯示血氧數值，避免誤測，規定心跳超過30才能顯示血氧
-    if (beatAvg > 30) display.print(String(ESpO2) + "%");
-    else display.print("---- %" );
+//    if (beatAvg > 30) display.print(String(ESpO2) + "%");
+//    else display.print("---- %" );
     display.display();//顯示螢幕
   }
   //沒偵測到手指，清除所有數據及螢幕內容顯示"Finger Please"
@@ -200,8 +207,6 @@ void loop() {
     display.setCursor(30, 35);
     display.println("Please");
     display.display();
-    noTone(Tonepin);
+//    noTone(Tonepin);
   }
 }
-
-
